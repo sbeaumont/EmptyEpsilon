@@ -1,4 +1,6 @@
+-----------------------------------
 -- Tengu Station entity definition
+-----------------------------------
 
 -- Create station with data from campaign if available
 function create_tengu_station(campaign_data)
@@ -17,11 +19,13 @@ function create_tengu_station(campaign_data)
             attributes = {
                 tech_level = 3,
                 defense_capability = 2,
-                resource_scarcity = 4
+                resource_scarcity = 4,
+                dock_capacity = 5
             },
             story_flags = {
                 intro_complete = false,
-                reactor_damaged = false
+                reactor_damaged = false,
+                main_quest_started = false
             }
         }
     end
@@ -37,9 +41,17 @@ function create_tengu_station(campaign_data)
             name = "Reactor Malfunction",
             description = "Station power fluctuates unexpectedly",
             trigger = function()
-                -- Code to implement complication in game
                 addGMMessage("Tengu Station reactor is malfunctioning!")
-                -- Could add effects here
+                
+                -- Apply effects to the station
+                if tengu.game_object then
+                    -- Flicker shields or reduce repair capabilities
+                    tengu.game_object:setRepairDocked(false)
+                    
+                    -- Create visual effect
+                    local x, y = tengu.game_object:getPosition()
+                    local explosion = ExplosionEffect():setPosition(x, y):setSize(200)
+                end
             end
         },
         {
@@ -48,16 +60,63 @@ function create_tengu_station(campaign_data)
             description = "Station receives distress call",
             trigger = function()
                 addGMMessage("Tengu Station receives urgent distress call!")
+                
                 -- Spawn ship in distress
                 local x, y = tengu:getPosition()
                 
                 local ship = CpuShip():setTemplate("Goods Freighter 2")
                 ship:setPosition(x + 10000, y + 2000)
                 ship:setFaction("Independent")
+                ship:setCallSign("Distressed Freighter")
                 ship:setHull(15)
                 ship:setShields(0)
+                ship:orderIdle()
                 
-                -- Update mission to include rescue
+                addGMMessage("Distressed freighter appeared at " .. (x + 10000) .. ", " .. (y + 2000))
+            end
+        },
+        {
+            id = "pirate_approach",
+            name = "Pirate Raid Warning",
+            description = "Pirates detected approaching the station",
+            trigger = function()
+                addGMMessage("Pirate vessels approaching Tengu Station!")
+                
+                local x, y = tengu:getPosition()
+                
+                -- Spawn 2-3 pirate ships
+                local count = math.random(2, 3)
+                for i = 1, count do
+                    local pirate = CpuShip():setTemplate("Striker")
+                    local angle = (math.pi * 2 * i) / count
+                    local distance = 8000
+                    
+                    pirate:setPosition(x + math.cos(angle) * distance, y + math.sin(angle) * distance)
+                    pirate:setFaction("Ghosts")
+                    pirate:setCallSign("Pirate " .. i)
+                    pirate:orderAttack(getPlayerShip(-1))
+                end
+                
+                addGMMessage(count .. " pirate ships have appeared!")
+            end
+        },
+        {
+            id = "supply_shortage",
+            name = "Critical Supply Shortage",
+            description = "Station reports critical shortage of vital supplies",
+            trigger = function()
+                addGMMessage("Tengu Station reports critical supply shortage!")
+                
+                -- Update station attributes
+                tengu:set_attribute("resource_scarcity", tengu:get_attribute("resource_scarcity") + 2)
+                
+                -- Affect station capabilities
+                if tengu.game_object then
+                    -- Reduce what the station can offer
+                    tengu.game_object:setSharesEnergyWithDocked(false)
+                end
+                
+                addGMMessage("Station resource scarcity increased to " .. tengu:get_attribute("resource_scarcity"))
             end
         }
     }
@@ -68,15 +127,34 @@ function create_tengu_station(campaign_data)
         local station = SpaceStation():setTemplate("Medium Station")
         station:setPosition(world_data.x or 5000, world_data.y or 5000)
         station:setCallSign(self.name)
+        station:setFaction("Independent")
         
         -- Apply attributes to game object
-        if self.attributes.tech_level > 4 then
-            station:setShields(80, 80) -- Better shields for higher tech
+        local tech_level = self:get_attribute("tech_level")
+        local defense = self:get_attribute("defense_capability")
+        
+        if tech_level > 4 then
+            station:setShields(100, 100) -- Better shields for higher tech
+        else
+            station:setShields(50, 50) -- Standard shields
+        end
+        
+        -- Apply defense capability
+        if defense > 3 then
+            station:setHull(200) -- Reinforced hull
         end
         
         -- Apply story flags
-        if self.story_flags.reactor_damaged then
+        if self:has_flag("reactor_damaged") then
             station:setRepairDocked(false) -- Can't repair ships
+            station:setSharesEnergyWithDocked(false) -- Can't share energy
+        end
+        
+        -- Apply resource scarcity
+        local scarcity = self:get_attribute("resource_scarcity")
+        if scarcity > 5 then
+            -- High scarcity - limited services
+            station:setSharesEnergyWithDocked(false)
         end
         
         -- Store reference to game object
@@ -90,12 +168,10 @@ function create_tengu_station(campaign_data)
         return station
     end
     
-    tengu.getPosition = function(self)
-        if self.game_object then
-            return self.game_object:getPosition()
-        end
-        return 0, 0
-    end
-    
     return tengu
 end
+
+-- Helper function to access Tengu Station globally
+TenguStation = {
+    create = create_tengu_station
+}

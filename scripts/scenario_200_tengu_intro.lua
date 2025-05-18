@@ -1,4 +1,3 @@
--- scenario_10_tengu_intro.lua
 -----------------------------------
 -- Tengu Campaign: Episode 1
 -- Introduction to Tengu Station
@@ -48,7 +47,6 @@ function init()
     -- Check for campaign progression
     if campaign_data.last_episode >= tengu_state.episode then
         -- Player has already completed this mission
-        -- Could offer alternate version or higher difficulty
         addGMMessage("Note: Players have already completed this mission in the campaign")
     end
     
@@ -158,7 +156,7 @@ function complete_mission(campaign_data)
     -- Inform GM
     addGMMessage("Mission complete! Campaign progress saved.")
     addGMMessage("Players can now continue with 'Tengu Rescue' mission.")
-}
+end
 
 -- Patrol mission for new players
 function create_patrol_mission(station)
@@ -169,8 +167,7 @@ function create_patrol_mission(station)
     
     -- Create 4 nav points in a square pattern
     for i=1,4 do
-        local x = station:getPosition()
-        local y = station:getPosition()
+        local x, y = station:getPosition()
         x = x + math.cos(angle) * distance
         y = y + math.sin(angle) * distance
         
@@ -183,7 +180,22 @@ function create_patrol_mission(station)
     end
     
     addGMMessage("Patrol mission created with 4 nav points")
-}
+end
+
+-- Advanced mission for experienced players
+function create_advanced_mission(station)
+    -- More complex mission for players with reputation
+    addGMMessage("Advanced mission activated - players have reputation")
+    
+    -- Create a more challenging scenario
+    local enemy_base = CpuShip():setTemplate("Weapons Platform")
+    local station_x, station_y = station:getPosition()
+    enemy_base:setPosition(station_x + 15000, station_y + 8000)
+    enemy_base:setFaction("Kraylor")
+    enemy_base:orderDefendLocation(station_x + 15000, station_y + 8000)
+    
+    addGMMessage("Enemy weapons platform detected near patrol route")
+end
 
 -- Setup GM interface with complications
 function setup_gm_interface(tengu_station, campaign_data)
@@ -209,7 +221,7 @@ function setup_gm_interface(tengu_station, campaign_data)
             addGMMessage("Captain Vex has appeared!")
         end)
     end
-}
+end
 
 -- Enemy encounter
 function spawn_enemy_wave()
@@ -232,4 +244,18 @@ function spawn_enemy_wave()
     end
     
     addGMMessage(count .. " enemy ships have appeared!")
-}
+end
+
+-- Spawn Captain Vex for special events
+function spawn_captain_vex(station_x, station_y)
+    local ship = CpuShip():setTemplate("Striker")
+    ship:setPosition(station_x + 8000, station_y + 3000)
+    ship:setCallSign("The Marauder")
+    ship:setFaction("Ghosts")
+    ship:setCanCloak(true)
+    
+    -- Order to patrol around the station
+    ship:orderDefendTarget(getPlayerShip(-1))
+    
+    return ship
+end

@@ -1,4 +1,6 @@
+-----------------------------------
 -- Persistence system for Tengu Campaign
+-----------------------------------
 
 TenguPersistence = {
     save_path = "save_data/tengu_campaign.json",
@@ -44,5 +46,15 @@ TenguPersistence = {
         
         -- No saved campaign found
         return nil
+    end,
+    
+    -- Clear campaign data (for testing)
+    clear_campaign = function()
+        _G["tengu_campaign_data"] = nil
+        local file = io.open(TenguPersistence.save_path, "w")
+        if file then
+            file:write("{}")
+            file:close()
+        end
     end
 }
