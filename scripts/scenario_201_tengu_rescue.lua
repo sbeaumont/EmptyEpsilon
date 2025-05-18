@@ -6,10 +6,7 @@
 -- Difficulty: Medium
 -- Duration: 45-60 minutes
 --
--- The second mission in the Tengu Campaign series.
--- Tengu Station's vital supplies are stranded on
--- a damaged freighter. Players must rescue the ship
--- while dealing with opportunistic pirates.
+-- Description: The second mission in the Tengu Campaign series. Tengu Station's vital supplies are stranded on a damaged freighter. Players must rescue the ship while dealing with opportunistic pirates.
 -----------------------------------
 
 -- Load supporting library

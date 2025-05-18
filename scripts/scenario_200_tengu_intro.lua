@@ -6,19 +6,17 @@
 -- Difficulty: Medium
 -- Duration: 30-45 minutes
 --
--- The first mission in the Tengu Campaign series.
--- Players are introduced to Tengu Station and its
--- inhabitants. A simple patrol mission with a twist.
+-- Description: The first mission in the Tengu Campaign series. Players are introduced to Tengu Station and its inhabitants. A simple patrol mission with a twist.
 -----------------------------------
 
 -- Load supporting library
-require("tengu_lib/core/persistence")
-require("tengu_lib/core/entity")
-require("tengu_lib/core/mission")
-require("tengu_lib/core/gm_interface")
-require("tengu_lib/utils/serialization")
-require("tengu_lib/entities/tengu_station")
-require("tengu_lib/entities/captain_vex")
+require("tengu_lib/core/persistence.lua")
+require("tengu_lib/core/entity.lua")
+require("tengu_lib/core/mission.lua")
+require("tengu_lib/core/gm_interface.lua")
+require("tengu_lib/utils/serialization.lua")
+require("tengu_lib/entities/tengu_station.lua")
+require("tengu_lib/entities/captain_vex.lua")
 
 -- Global mission state
 tengu_state = {
@@ -28,43 +26,45 @@ tengu_state = {
 
 -- Standard EmptyEpsilon init function
 function init()
-    -- Load or initialize campaign state
-    local campaign_data = TenguPersistence.load_campaign()
-    
-    if not campaign_data then
-        -- First time playing - initialize new campaign
-        campaign_data = {
-            version = "0.1",
-            last_episode = 0,
-            entities = {},
-            player_progress = {
-                reputation = 0,
-                completed_missions = {}
-            }
-        }
+    print("=== TENGU INTRO INIT STARTED ===")
+
+    -- Initialize campaign persistence
+    initializeCampaignPersistence()
+
+    -- Create campaign data in the format expected by tengu_station
+    local campaign_data = {
+        entities = {},
+        -- Add other campaign-level data as needed
+    }
+
+    -- Check episode status
+    if not isEpisodeCompleted(1) then
+        print("First time playing episode 1")
+        setCampaignFlag("intro_started", true)
+    else
+        print("Replaying episode 1")
     end
-    
-    -- Check for campaign progression
-    if campaign_data.last_episode >= tengu_state.episode then
-        -- Player has already completed this mission
-        addGMMessage("Note: Players have already completed this mission in the campaign")
+
+    -- Create Tengu Station using your existing function
+    print("Creating Tengu Station...")
+    local tengu = TenguStation.create(campaign_data)
+
+    if tengu then
+        print("Tengu Station created, now spawning...")
+        tengu:spawn({x = 0, y = 0})
+        print("Tengu Station spawned successfully")
+    else
+        print("ERROR: Failed to create Tengu Station")
     end
-    
-    -- Create station and other entities
-    local tengu_station = create_tengu_station(campaign_data)
-    local x, y = 5000, 5000
-    
-    -- Spawn the physical station
-    local station = tengu_station:spawn({x = x, y = y})
-    
-    -- Set up mission objectives
-    create_mission_objectives(station, campaign_data)
-    
-    -- Set up GM interface with complications
-    setup_gm_interface(tengu_station, campaign_data)
-    
-    -- Save initial state to ensure entity updates are captured
-    TenguPersistence.save_campaign(campaign_data)
+
+    -- Create a basic player ship if none exists
+    if not getPlayerShip(-1) then
+        local player = PlayerSpaceship():setFaction("Human Navy"):setTemplate("Atlantis")
+        player:setPosition(0, 0)
+        print("Created player ship")
+    end
+
+    print("=== TENGU INTRO INIT COMPLETED ===")
 end
 
 -- Creates mission objectives based on campaign progress
@@ -151,7 +151,7 @@ function complete_mission(campaign_data)
     end
     
     -- Save campaign progress
-    TenguPersistence.save_campaign(campaign_data)
+    saveCampaignState(campaign_data)
     
     -- Inform GM
     addGMMessage("Mission complete! Campaign progress saved.")
@@ -203,7 +203,7 @@ function setup_gm_interface(tengu_station, campaign_data)
     addGMFunction("--Tengu Campaign--", function() end)
     
     addGMFunction("Save Progress", function()
-        TenguPersistence.save_campaign(campaign_data)
+        saveCampaignState(campaign_data)
         addGMMessage("Campaign progress saved")
     end)
     
